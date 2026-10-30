@@ -51,9 +51,9 @@ class ComplexityEngine {
     detectAdvancedPatterns(code, language) {
         const hasHLD = (/\bheavy\b/.test(code) || /\bhead\b/.test(code)) &&
             (/\bdepth\b/.test(code) || /\bparent\b/.test(code)) &&
-            /\bhead\[u\]\s*!=\s*head\[v\]|head\[v\]\s*!=\s*head\[u\]/.test(code);
-        const hasSegTree = /\bseg\[/.test(code) &&
-            (/>>= 1|<<= 1|\* 2|\* 2 \+ 1/.test(code) || /\btree\[/.test(code));
+            (/\bhead\[[a-z0-9_]+\]\s*!=\s*head\[[a-z0-9_]+\]/i.test(code) || /\bpathQuery\b/.test(code));
+        const hasSegTree = /\bseg\[|\btree\[/.test(code) &&
+            (/>>=\s*1|<<=\s*1|\*\s*2|\*\s*2\s*\+\s*1|tree\[/.test(code));
         const hasQueries = /\bqueries\b/.test(code) || /\bvector<string>\s*&\s*queries|\bvector<vector<int>>\s*&\s*queries/.test(code);
         // 1. Heavy-Light Decomposition + Segment Tree (The exact user's code!)
         if (hasHLD && hasSegTree && hasQueries) {

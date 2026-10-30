@@ -1,49 +1,72 @@
 import React from 'react';
-import { User, LogIn, Github, ExternalLink, Activity } from 'lucide-react';
-import { User as UserType } from '../shared/types';
+import { Search, Bell, Menu, User as UserIcon } from 'lucide-react';
+import { User } from '../shared/types';
 
 interface NavbarProps {
   activePage: string;
-  user: UserType | null;
+  user: User | null;
   onOpenAuth: () => void;
+  onToggleMobileMenu: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activePage, user, onOpenAuth }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  activePage,
+  user,
+  onOpenAuth,
+  onToggleMobileMenu
+}) => {
   const pageTitles: Record<string, string> = {
-    dashboard: 'Developer Dashboard',
-    editor: 'Code Editor & Analysis Workspace',
-    complexity: 'Complexity & Big-O Engine',
-    'static-analysis': 'Security Defect Inspector',
-    'ai-review': 'AI Cognitive Code Review',
-    github: 'GitHub Repository Importer',
-    history: 'Analysis History & Reports'
+    overview: 'Overview',
+    analyzer: 'Code Analyzer',
+    history: 'Analysis History',
+    github: 'GitHub Projects',
+    settings: 'Settings'
   };
 
+  const title = pageTitles[activePage] || 'Workspace';
+
   return (
-    <header className="top-navbar">
-      <div className="navbar-breadcrumb">
-        <span className="platform-prefix">DevLens</span>
-        <span className="separator">/</span>
-        <span className="current-page-crumb">{pageTitles[activePage] || 'Workspace'}</span>
+    <header className="topbar">
+      <div className="topbar-left">
+        <button className="menu-toggle-btn" onClick={onToggleMobileMenu} title="Toggle Menu">
+          <Menu size={18} />
+        </button>
+
+        <div className="breadcrumbs">
+          <span className="crumb-root">DevLens</span>
+          <span className="crumb-separator">/</span>
+          <span className="crumb-current">{title}</span>
+        </div>
       </div>
 
-      <div className="navbar-actions">
-        {/* Engine status indicator */}
-        <div className="engine-status-badge">
-          <span className="status-dot"></span>
-          <span>Analysis Engine Active</span>
+      <div className="topbar-right">
+        {/* Search Field */}
+        <div className="search-box">
+          <Search size={14} />
+          <input type="text" placeholder="Search analyses, repos..." />
+          <span className="shortcut-badge">⌘K</span>
         </div>
 
-        {/* User Account Button */}
-        {user ? (
-          <div className="nav-user-greeting">
-            <span>Welcome, <strong>{user.name.split(' ')[0]}</strong></span>
-          </div>
-        ) : (
-          <button className="btn-nav-auth" onClick={onOpenAuth}>
-            <LogIn size={15} /> Sign In / Register
-          </button>
-        )}
+        {/* Engine Status */}
+        <div className="engine-pill" title="AST static engine & Big-O analyzer ready">
+          <span className="engine-dot"></span>
+          <span>Engine ready</span>
+        </div>
+
+        {/* Notification Bell */}
+        <button className="btn-icon-subtle" title="Notifications">
+          <Bell size={16} />
+        </button>
+
+        {/* User avatar menu */}
+        <button 
+          className="avatar-circle" 
+          onClick={onOpenAuth}
+          title={user ? user.name : 'Sign In'}
+          style={{ cursor: 'pointer' }}
+        >
+          {user ? user.name.charAt(0).toUpperCase() : <UserIcon size={14} />}
+        </button>
       </div>
     </header>
   );

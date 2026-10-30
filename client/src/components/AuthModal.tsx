@@ -50,90 +50,110 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-card">
-        <div className="modal-header">
+      <div className="modal-dialog">
+        <div className="modal-title-row">
           <div>
-            <h3 className="modal-title">{isRegister ? 'Create DevLens Account' : 'Welcome to DevLens'}</h3>
-            <p className="modal-subtitle">
-              {isRegister ? 'Save analysis history, track metrics & connect GitHub' : 'Sign in to access your personal workspace & reports'}
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>
+              {isRegister ? 'Create DevLens Account' : 'Welcome to DevLens'}
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+              {isRegister ? 'Start analyzing code with persistent history' : 'Sign in to access your saved analyses'}
             </p>
           </div>
-          <button className="btn-close" onClick={onClose}><X size={18} /></button>
+          <button className="btn-icon-subtle" onClick={onClose}><X size={16} /></button>
         </div>
 
         {error && (
-          <div className="modal-error">
-            <AlertCircle size={16} />
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            backgroundColor: 'var(--error-subtle)', 
+            border: '1px solid var(--error-border)', 
+            color: 'var(--error)', 
+            padding: '0.5rem 0.75rem', 
+            borderRadius: '6px', 
+            fontSize: '0.78rem' 
+          }}>
+            <AlertCircle size={15} />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           {isRegister && (
-            <div className="form-group">
-              <label>Full Name</label>
-              <div className="input-with-icon">
-                <UserIcon size={16} className="input-icon" />
-                <input 
-                  type="text" 
-                  required 
-                  placeholder="e.g. Alex Turing"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
+            <div className="form-row">
+              <label className="form-label">Full Name</label>
+              <input 
+                className="form-input" 
+                type="text" 
+                required 
+                placeholder="Alex Developer"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{ maxWidth: '100%' }}
+              />
             </div>
           )}
 
-          <div className="form-group">
-            <label>Work or Personal Email</label>
-            <div className="input-with-icon">
-              <Mail size={16} className="input-icon" />
-              <input 
-                type="email" 
-                required 
-                placeholder="developer@domain.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+          <div className="form-row">
+            <label className="form-label">Email Address</label>
+            <input 
+              className="form-input" 
+              type="email" 
+              required 
+              placeholder="alex@domain.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ maxWidth: '100%' }}
+            />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-            <div className="input-with-icon">
-              <Lock size={16} className="input-icon" />
-              <input 
-                type="password" 
-                required 
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+          <div className="form-row">
+            <label className="form-label">Password</label>
+            <input 
+              className="form-input" 
+              type="password" 
+              required 
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ maxWidth: '100%' }}
+            />
           </div>
 
-          <button type="submit" className="btn-submit-auth" disabled={loading}>
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            disabled={loading}
+            style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
+          >
             {loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Sign In')}
-            <ArrowRight size={16} />
+            <ArrowRight size={15} />
           </button>
         </form>
 
-        <div className="modal-footer">
+        <div style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           {isRegister ? (
-            <p>
+            <span>
               Already have an account?{' '}
-              <button className="link-button" onClick={() => setIsRegister(false)}>
+              <button 
+                onClick={() => setIsRegister(false)} 
+                style={{ color: 'var(--primary)', fontWeight: 500, textDecoration: 'underline' }}
+              >
                 Sign In
               </button>
-            </p>
+            </span>
           ) : (
-            <p>
+            <span>
               New to DevLens?{' '}
-              <button className="link-button" onClick={() => setIsRegister(true)}>
-                Create an Account
+              <button 
+                onClick={() => setIsRegister(true)} 
+                style={{ color: 'var(--primary)', fontWeight: 500, textDecoration: 'underline' }}
+              >
+                Create an account
               </button>
-            </p>
+            </span>
           )}
         </div>
       </div>

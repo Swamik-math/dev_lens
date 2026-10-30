@@ -2,15 +2,13 @@ import React from 'react';
 import { 
   LayoutDashboard, 
   Code2, 
-  ShieldAlert, 
-  Clock, 
-  Sparkles, 
-  Github, 
   History, 
-  User as UserIcon, 
-  LogOut,
-  LogIn,
-  ChevronRight
+  Github, 
+  Settings, 
+  LogOut, 
+  LogIn, 
+  Terminal,
+  ShieldCheck
 } from 'lucide-react';
 import { User } from '../shared/types';
 
@@ -20,6 +18,8 @@ interface SidebarProps {
   user: User | null;
   onOpenAuth: () => void;
   onLogout: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -27,82 +27,87 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActivePage,
   user,
   onOpenAuth,
-  onLogout
+  onLogout,
+  mobileOpen,
+  onCloseMobile
 }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Developer Dashboard', icon: LayoutDashboard },
-    { id: 'editor', label: 'Code Editor', icon: Code2 },
-    { id: 'complexity', label: 'Complexity Analysis', icon: Clock },
-    { id: 'static-analysis', label: 'Security & Quality', icon: ShieldAlert },
-    { id: 'ai-review', label: 'AI Code Review', icon: Sparkles },
-    { id: 'github', label: 'GitHub Integration', icon: Github },
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'analyzer', label: 'Code Analyzer', icon: Code2 },
     { id: 'history', label: 'Analysis History', icon: History },
+    { id: 'github', label: 'GitHub Projects', icon: Github },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const handleNavClick = (id: string) => {
+    setActivePage(id);
+    onCloseMobile();
+  };
+
   return (
-    <aside className="sidebar-container">
+    <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header */}
-      <div className="sidebar-brand">
-        <div className="brand-logo-glow">
-          <Code2 size={22} color="#fff" />
+      <div className="sidebar-header">
+        <div className="brand-link" onClick={() => handleNavClick('overview')}>
+          <div className="brand-icon">
+            <Terminal size={17} strokeWidth={2.2} />
+          </div>
+          <span className="brand-title">DevLens</span>
         </div>
-        <div className="brand-text-block">
-          <span className="brand-name">DevLens</span>
-          <span className="brand-version">v2.4 • Platform</span>
-        </div>
+        <span className="brand-badge">SaaS</span>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="sidebar-nav">
-        <div className="nav-section-label">CORE WORKSPACE</div>
-        {menuItems.map(item => {
+      {/* Navigation List */}
+      <nav className="sidebar-menu">
+        <div className="menu-heading">Platform</div>
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activePage === item.id;
           return (
             <button
               key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setActivePage(item.id)}
+              className={`sidebar-item ${isActive ? 'active' : ''}`}
+              onClick={() => handleNavClick(item.id)}
             >
-              <Icon size={18} className="nav-icon" />
-              <span className="nav-label">{item.label}</span>
-              {isActive && <ChevronRight size={14} className="nav-arrow" />}
+              <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} className="item-icon" />
+              <span className="item-label">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* User Account / Profile Widget */}
-      <div className="sidebar-user-section">
+      {/* User Profile at Bottom */}
+      <div className="sidebar-footer">
         {user ? (
-          <div className="user-profile-card">
-            <div className="user-avatar">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="user-info">
-              <span className="user-name">{user.name}</span>
-              <span className="user-email">{user.email}</span>
+          <div className="user-snippet">
+            <div className="user-snippet-left">
+              <div className="avatar-circle">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="user-meta">
+                <span className="user-name-text">{user.name}</span>
+                <span className="user-email-text">{user.email}</span>
+              </div>
             </div>
             <button 
-              className="btn-logout" 
-              onClick={onLogout}
+              className="btn-icon-subtle" 
+              onClick={onLogout} 
               title="Sign Out"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
             </button>
           </div>
         ) : (
-          <button className="btn-login-prompt" onClick={onOpenAuth}>
-            <div className="login-prompt-left">
-              <div className="avatar-placeholder">
-                <UserIcon size={16} />
+          <button className="user-snippet" onClick={onOpenAuth} style={{ width: '100%', cursor: 'pointer' }}>
+            <div className="user-snippet-left">
+              <div className="avatar-circle">
+                <LogIn size={13} />
               </div>
-              <div className="login-prompt-text">
-                <span className="login-title">Guest Developer</span>
-                <span className="login-subtitle">Sign in to sync history</span>
+              <div className="user-meta">
+                <span className="user-name-text">Sign In</span>
+                <span className="user-email-text">Sync reports & settings</span>
               </div>
             </div>
-            <LogIn size={16} color="#60a5fa" />
           </button>
         )}
       </div>

@@ -5,11 +5,9 @@ import {
   Star, 
   Folder, 
   FileCode, 
-  ArrowRight, 
-  ExternalLink, 
-  Key, 
   Play, 
-  ChevronRight,
+  ChevronRight, 
+  Key,
   AlertCircle
 } from 'lucide-react';
 import { GitHubRepo, GitHubFile, SupportedLanguage } from '../shared/types';
@@ -80,7 +78,6 @@ export const GitHubPage: React.FC<GitHubPageProps> = ({ onLoadCodeToEditor }) =>
 
   const handleFileClick = async (file: GitHubFile) => {
     if (file.type === 'dir') {
-      // Browse directory
       setCurrentPath(file.path);
       setLoading(true);
       try {
@@ -96,7 +93,6 @@ export const GitHubPage: React.FC<GitHubPageProps> = ({ onLoadCodeToEditor }) =>
       return;
     }
 
-    // It's a code file: fetch raw content
     if (!file.download_url) return;
 
     setLoadingFile(true);
@@ -110,7 +106,6 @@ export const GitHubPage: React.FC<GitHubPageProps> = ({ onLoadCodeToEditor }) =>
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Detect language from extension
       const ext = file.name.split('.').pop()?.toLowerCase();
       let detectedLang: SupportedLanguage = 'javascript';
       if (['cpp', 'cc', 'cxx', 'h', 'hpp', 'c'].includes(ext || '')) detectedLang = 'cpp';
@@ -127,93 +122,109 @@ export const GitHubPage: React.FC<GitHubPageProps> = ({ onLoadCodeToEditor }) =>
   };
 
   return (
-    <div className="page-content github-view">
-      {/* Header */}
-      <div className="page-header">
+    <div className="page-container">
+      <div className="page-hero">
         <div>
-          <h1 className="page-title">GitHub Repository Integration & Code Importer</h1>
-          <p className="page-subtitle">
-            Connect public or private repositories, browse file trees, and load code directly into DevLens.
-          </p>
+          <h1 className="hero-title">GitHub Projects</h1>
+          <p className="hero-subtitle">Import repositories, browse file trees, and inspect codebase complexity.</p>
         </div>
       </div>
 
-      {/* GitHub Query Controls */}
-      <div className="dashboard-card github-query-card">
-        <form onSubmit={handleFetchRepos} className="github-search-form">
-          <div className="search-input-group">
-            <Github size={20} className="search-icon" />
+      {/* Query Bar */}
+      <div className="panel-card" style={{ padding: '1rem' }}>
+        <form onSubmit={handleFetchRepos} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.35rem 0.65rem', flex: 1, minWidth: '220px' }}>
+            <Github size={15} style={{ color: 'var(--text-muted)' }} />
             <input 
               type="text" 
-              placeholder="Enter GitHub username or organization (e.g. torvalds, facebook, supre)..."
+              placeholder="GitHub handle or organization (e.g. torvalds, facebook, supre)..." 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="github-text-input"
+              style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '0.8rem', outline: 'none', width: '100%' }}
             />
           </div>
 
-          <div className="token-input-group">
-            <Key size={16} className="token-icon" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.35rem 0.65rem', width: '220px' }}>
+            <Key size={14} style={{ color: 'var(--text-muted)' }} />
             <input 
               type="password" 
-              placeholder="Optional: GitHub Personal Access Token"
+              placeholder="Optional token..." 
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              className="github-token-input"
+              style={{ background: 'none', border: 'none', color: 'var(--text-main)', fontSize: '0.8rem', outline: 'none', width: '100%' }}
             />
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            <Search size={16} />
-            {loading ? 'Fetching...' : 'Find Repositories'}
+            <Search size={14} /> {loading ? 'Fetching...' : 'Find Repositories'}
           </button>
         </form>
 
         {error && (
-          <div className="github-error-banner">
-            <AlertCircle size={16} />
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            backgroundColor: 'var(--error-subtle)', 
+            border: '1px solid var(--error-border)', 
+            color: 'var(--error)', 
+            padding: '0.45rem 0.65rem', 
+            borderRadius: '6px', 
+            fontSize: '0.75rem', 
+            marginTop: '0.75rem' 
+          }}>
+            <AlertCircle size={14} />
             <span>{error}</span>
           </div>
         )}
       </div>
 
-      {/* 2-Column Split: Repositories on left, File Explorer on right */}
-      <div className="github-browser-grid">
-        {/* Left: Repositories List */}
-        <div className="dashboard-card repo-list-card">
-          <div className="card-header-flex">
-            <h3 className="card-heading">
-              <Github size={18} />
-              Repositories for @{username}
+      {/* Repositories & File Explorer Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        {/* Left: Repositories */}
+        <div className="panel-card">
+          <div className="panel-header">
+            <h3 className="panel-title">
+              <Github size={16} /> Repositories ({repos.length})
             </h3>
-            <span className="badge-count">{repos.length} Found</span>
           </div>
 
           {repos.length === 0 && !loading && (
-            <p className="empty-subtext">No repositories loaded yet. Search a GitHub handle above.</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              No repositories loaded yet. Search a GitHub handle above.
+            </p>
           )}
 
-          <div className="repo-items-list">
-            {repos.map((repo) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '450px', overflowY: 'auto' }}>
+            {repos.map(repo => {
               const isSelected = selectedRepo?.id === repo.id;
               return (
                 <div 
-                  key={repo.id} 
-                  className={`repo-card-item ${isSelected ? 'selected' : ''}`}
+                  key={repo.id}
                   onClick={() => handleSelectRepo(repo)}
+                  style={{
+                    padding: '0.75rem',
+                    backgroundColor: isSelected ? 'var(--bg-hover)' : 'var(--bg-subtle)',
+                    border: `1px solid ${isSelected ? 'var(--primary-border)' : 'var(--border)'}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
                 >
-                  <div className="repo-card-top">
-                    <span className="repo-title">{repo.name}</span>
-                    <span className="repo-stars">
-                      <Star size={13} fill="currentColor" /> {repo.stars}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>{repo.name}</strong>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem', color: 'var(--warning)' }}>
+                      <Star size={12} fill="currentColor" /> {repo.stars}
                     </span>
                   </div>
                   {repo.description && (
-                    <p className="repo-desc">{repo.description}</p>
+                    <p style={{ fontSize: '0.725rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                      {repo.description}
+                    </p>
                   )}
-                  <div className="repo-meta">
-                    {repo.language && <span className="lang-tag">{repo.language}</span>}
-                    <span className="branch-tag">branch: {repo.default_branch}</span>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', fontSize: '0.7rem' }}>
+                    {repo.language && <span className="badge-tag lang">{repo.language}</span>}
+                    <span style={{ color: 'var(--text-muted)' }}>branch: {repo.default_branch}</span>
                   </div>
                 </div>
               );
@@ -221,43 +232,52 @@ export const GitHubPage: React.FC<GitHubPageProps> = ({ onLoadCodeToEditor }) =>
           </div>
         </div>
 
-        {/* Right: File Explorer */}
-        <div className="dashboard-card file-explorer-card">
-          <div className="card-header-flex">
-            <h3 className="card-heading">
-              <Folder size={18} color="#f59e0b" />
-              {selectedRepo ? `${selectedRepo.name} ${currentPath ? `/ ${currentPath}` : ''}` : 'File Explorer'}
+        {/* Right: Files */}
+        <div className="panel-card">
+          <div className="panel-header">
+            <h3 className="panel-title">
+              <Folder size={16} style={{ color: 'var(--primary)' }} /> 
+              {selectedRepo ? `${selectedRepo.name} ${currentPath ? `/ ${currentPath}` : ''}` : 'Repository Files'}
             </h3>
-            {loadingFile && <span className="text-accent">Loading code into editor...</span>}
+            {loadingFile && <span style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>Importing code...</span>}
           </div>
 
           {!selectedRepo ? (
-            <div className="clean-pane-state">
-              <Folder size={36} color="#475569" />
-              <p>Select a repository on the left to inspect its file directory.</p>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+              <Folder size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.3 }} />
+              <p style={{ fontSize: '0.78rem' }}>Select a repository on the left to inspect files.</p>
             </div>
           ) : (
-            <div className="files-list-tree">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '450px', overflowY: 'auto' }}>
               {files.map((file, i) => (
                 <div 
-                  key={i} 
-                  className="file-node-row"
+                  key={i}
                   onClick={() => handleFileClick(file)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem 0.65rem',
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <div className="file-node-left">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
                     {file.type === 'dir' ? (
-                      <Folder size={16} color="#fbbf24" />
+                      <Folder size={14} color="var(--primary)" />
                     ) : (
-                      <FileCode size={16} color="#60a5fa" />
+                      <FileCode size={14} color="var(--text-secondary)" />
                     )}
-                    <span className="file-node-name">{file.name}</span>
+                    <span>{file.name}</span>
                   </div>
-                  <div className="file-node-right">
+                  <div>
                     {file.type === 'dir' ? (
-                      <ChevronRight size={14} color="#64748b" />
+                      <ChevronRight size={13} color="var(--text-muted)" />
                     ) : (
-                      <span className="btn-import-code">
-                        <Play size={12} fill="currentColor" /> Analyze
+                      <span className="btn-primary" style={{ padding: '2px 7px', fontSize: '0.7rem' }}>
+                        <Play size={10} fill="currentColor" /> Analyze
                       </span>
                     )}
                   </div>
