@@ -20,16 +20,16 @@ export class DeepNestingRule implements Rule {
         return;
       }
 
-      // Check indentation depth based on leading spaces (assume 2 or 4 spaces per indent)
+      // Check indentation depth based on 4 spaces per standard indent level
       const leadingSpaces = line.search(/\S|$/);
-      const calculatedDepth = Math.floor(leadingSpaces / 2); // normalize 2-4 spaces
+      const calculatedDepth = Math.floor(leadingSpaces / 4);
 
-      // Also count braces in C-like languages
+      // Track braces in C-like languages
       const openBraces = (line.match(/\{/g) || []).length;
       const closeBraces = (line.match(/\}/g) || []).length;
       currentIndentLevel += openBraces - closeBraces;
 
-      const effectiveDepth = Math.max(calculatedDepth, currentIndentLevel);
+      const effectiveDepth = context.language === 'python' ? calculatedDepth : Math.max(1, currentIndentLevel);
 
       if (effectiveDepth > maxAllowedDepth && (trimmed.startsWith('if') || trimmed.startsWith('for') || trimmed.startsWith('while'))) {
         findings.push({

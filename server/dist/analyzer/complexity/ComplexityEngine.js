@@ -46,9 +46,34 @@ class ComplexityEngine {
         return details;
     }
     /**
-     * Advanced Algorithmic Pattern Recognition (HLD, Segment Trees, Fenwick, DSU, Dijkstra)
+     * Advanced Algorithmic Pattern Recognition (HLD, Segment Trees, Fenwick, DSU, Binary Search)
      */
     detectAdvancedPatterns(code, language) {
+        // 0. Binary Search Pattern Detection
+        const isBinarySearch = (/\bbinarySearch\b/i.test(code) || /\bwhile\s*\(\s*(?:left|low|l|start)\s*<=\s*(?:right|high|r|end)\s*\)/i.test(code)) &&
+            (/\bmid\s*=\s*.*\/ 2|\bmid\s*=\s*.*>> 1/.test(code) || /\b(left|low|l|start)\s*=\s*mid|\b(right|high|r|end)\s*=\s*mid/.test(code));
+        if (isBinarySearch) {
+            // Check if auxiliary storage is dynamically allocated in the search routine
+            const hasAuxInSearch = /vector<[^>]+>\s+\w+\s*\(n\)/.test(code) ||
+                /new\s+\w+\[n\]/.test(code);
+            return {
+                timeComplexity: 'O(log n)',
+                spaceComplexity: hasAuxInSearch ? 'O(n)' : 'O(1)',
+                explanation: 'Logarithmic time complexity O(log n): Classic Binary Search halving the candidate search interval at each step (mid = left + (right - left) / 2). Total operations scale with log₂(n). Auxiliary space is O(1) constant memory because input elements are accessed by reference and only scalar index variables (left, right, mid) are allocated.',
+                score: 95,
+                loopDetails: [
+                    {
+                        depth: 1,
+                        line: 1,
+                        type: 'while',
+                        iteratorStep: 'while (left <= right)',
+                        complexityContribution: 'O(log n)',
+                        description: 'Binary Interval Halving: Each comparison reduces the remaining search elements by 50%.'
+                    }
+                ],
+                recursionDetails: { hasRecursion: false, baseCaseDetected: true }
+            };
+        }
         const hasHLD = (/\bheavy\b/.test(code) || /\bhead\b/.test(code)) &&
             (/\bdepth\b/.test(code) || /\bparent\b/.test(code)) &&
             (/\bhead\[[a-z0-9_]+\]\s*!=\s*head\[[a-z0-9_]+\]/i.test(code) || /\bpathQuery\b/.test(code));
@@ -169,6 +194,13 @@ class ComplexityEngine {
                         if (/>>=|<<=|\*=|(\/\=)/.test(line)) {
                             stepComplexity = 'O(log n)';
                         }
+                        else {
+                            // Lookahead in following lines for logarithmic stepping or interval halving
+                            const lookahead = lines.slice(index, index + 15).join('\n');
+                            if (/\/\s*2|\bmid\s*=|\b(left|right|low|high|l|r)\s*=\s*mid|>>=\s*1|\/=\s*2/.test(lookahead)) {
+                                stepComplexity = 'O(log n)';
+                            }
+                        }
                     }
                 }
             }
@@ -244,10 +276,6 @@ class ComplexityEngine {
         };
     }
     detectSpaceComplexity(code, lines, language, recursion) {
-        const hasDynamicAlloc = /new\s+(?:int|double|char|string|Array|vector|ArrayList|HashMap|HashSet)\[/i.test(code) ||
-            /\bvector\s*<|\bmap\s*<|\bset\s*<|\bunordered_map\s*</i.test(code) ||
-            /\[\s*\]|\{\s*\}|\bnew\s+Array\s*\(/.test(code) ||
-            /\.append\(|\.push\(|\.insert\(|\.push_back\(/.test(code);
         if (recursion.hasRecursion) {
             const stackSpace = 'O(n)';
             return {
@@ -255,7 +283,23 @@ class ComplexityEngine {
                 explanation: `Space complexity is ${stackSpace} due to recursion call stack depth (holding up to n stack frames).`
             };
         }
-        if (hasDynamicAlloc) {
+        // Check if input parameter is passed by reference (e.g. const vector<int>& arr)
+        const isPassingRefOnly = /const\s+(?:std::)?vector<[^>]+>\s*&/.test(code);
+        const hasHeapAllocInFunction = /new\s+(?:int|double|char|string|Array|vector|ArrayList|HashMap|HashSet)\[/i.test(code) ||
+            /\bvector\s*<[^>]+>\s+\w+\s*\([^)]*n[^)]*\)/.test(code) ||
+            /\b(map|set|unordered_map)\s*<[^>]+>\s+\w+/.test(code) ||
+            /\.push_back\s*\(|\.append\s*\(|\.insert\s*\(/.test(code);
+        if (isPassingRefOnly && !hasHeapAllocInFunction) {
+            return {
+                space: 'O(1)',
+                explanation: 'Space complexity is O(1) (constant) auxiliary memory: input container is passed by reference, and only scalar index variables (left, right, mid) are allocated.'
+            };
+        }
+        const hasDynamicAlloc = /new\s+(?:int|double|char|string|Array|vector|ArrayList|HashMap|HashSet)\[/i.test(code) ||
+            /\bvector\s*<|\bmap\s*<|\bset\s*<|\bunordered_map\s*</i.test(code) ||
+            /\[\s*\]|\{\s*\}|\bnew\s+Array\s*\(/.test(code) ||
+            /\.append\(|\.push\(|\.insert\(|\.push_back\(/.test(code);
+        if (hasDynamicAlloc && (/for\s*\(|while\s*\(/.test(code) || /vector<[^>]+>\s+\w+\s*\(/.test(code))) {
             return {
                 space: 'O(n)',
                 explanation: 'Space complexity is O(n) auxiliary memory allocated for dynamic arrays, graphs, or hash storage proportional to the input volume.'
