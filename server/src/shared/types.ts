@@ -103,3 +103,65 @@ export interface AnalysisRequest {
   language: SupportedLanguage;
   includeAi?: boolean;
 }
+
+// User & Auth
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  githubUsername?: string;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// Saved Analysis Report
+export interface SavedAnalysis {
+  id: string;
+  userId?: string;
+  name: string;
+  code: string;
+  language: SupportedLanguage;
+  result: AnalysisResult;
+  createdAt: string;
+}
+
+// Dashboard Aggregates
+export interface DashboardStats {
+  totalScans: number;
+  projectHealth: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  totalLoc: number;
+  totalFindings: {
+    critical: number;
+    warning: number;
+    info: number;
+  };
+  avgCyclomatic: number;
+  avgMaintainability: number;
+  complexityDistribution: Record<string, number>;
+  recentScans: SavedAnalysis[];
+}
+
+// GitHub Integration
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description?: string;
+  language?: string;
+  stars: number;
+  default_branch: string;
+  html_url: string;
+}
+
+export interface GitHubFile {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  size?: number;
+  download_url?: string;
+}

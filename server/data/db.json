@@ -1,0 +1,149 @@
+{
+  "users": [
+    {
+      "id": "e76db5ee-3ce3-4925-b6ad-a21eeac43d3c",
+      "name": "Supreet",
+      "email": "supreet@test.com",
+      "passwordHash": "$2b$10$ToGN6rrcGoCgkavGKUtpF.Pz4k8BMEK0r2z08AKzQD2Nd64fBZrWu",
+      "createdAt": "2026-10-30T01:45:00.192Z"
+    }
+  ],
+  "analyses": [
+    {
+      "id": "f03fb5af-0489-4020-ba43-c73215d73231",
+      "name": "Matrix Multiplication Optimization",
+      "code": "for (int i = 0; i < n; i++) {\n  for (int j = 0; j < n; j++) {\n    cout << i + j;\n  }\n}",
+      "language": "cpp",
+      "createdAt": "2026-10-28T01:36:20.213Z",
+      "result": {
+        "id": "5ecd5a23-8f9d-40ef-91b7-6aead0a50272",
+        "timestamp": "2026-10-30T01:36:20.213Z",
+        "language": "cpp",
+        "code": "for (int i = 0; i < n; i++) {\n  for (int j = 0; j < n; j++) {\n    cout << i + j;\n  }\n}",
+        "metrics": {
+          "totalLines": 5,
+          "codeLines": 5,
+          "commentLines": 0,
+          "blankLines": 0,
+          "cyclomaticComplexity": 3,
+          "maintainabilityIndex": 82
+        },
+        "complexity": {
+          "timeComplexity": "O(n^2)",
+          "spaceComplexity": "O(1)",
+          "score": 55,
+          "explanation": "Quadratic complexity O(n²): 2 nested loops iterating over n.",
+          "loopDetails": [
+            {
+              "depth": 1,
+              "line": 1,
+              "type": "for",
+              "complexityContribution": "O(n)",
+              "description": "Top level loop"
+            },
+            {
+              "depth": 2,
+              "line": 2,
+              "type": "for",
+              "complexityContribution": "O(n)",
+              "description": "Nested loop level 2"
+            }
+          ]
+        },
+        "findings": [
+          {
+            "id": "27cde145-f955-4fa5-81af-4f8e2ec94eb0",
+            "ruleId": "RULE_DEBUG_LOGS",
+            "category": "code-quality",
+            "severity": "warning",
+            "message": "Leftover debug logging statement detected (cout)",
+            "explanation": "Avoid streaming to std::cout in hot loops.",
+            "line": 3,
+            "snippet": "cout << i + j;",
+            "suggestion": "Buffer output or log via structured logger."
+          }
+        ],
+        "aiReview": {
+          "summary": "Quadratic computation routine detected with minor I/O latency smell.",
+          "overallRating": "Good",
+          "optimizations": [
+            {
+              "title": "Vectorize inner loop with SIMD",
+              "description": "Pre-allocate output array and utilize compiler vectorization.",
+              "impact": "high"
+            }
+          ],
+          "securityRisks": [],
+          "explanation": "Dual level iterations require O(n²) operations."
+        }
+      }
+    },
+    {
+      "id": "7f8aff9a-c8b7-42d6-b4ba-eeac66295848",
+      "name": "Authentication Dispatcher Service",
+      "code": "function verify(token) {\n  console.log(\"Token:\", token);\n  // TODO: Add revocation check\n  try {\n    eval(token);\n  } catch(e) {}\n}",
+      "language": "javascript",
+      "createdAt": "2026-10-29T01:36:20.213Z",
+      "result": {
+        "id": "a8e79ea0-ab92-4219-ab36-5adf99e8cc29",
+        "timestamp": "2026-10-30T01:36:20.213Z",
+        "language": "javascript",
+        "code": "function verify(token) {\n  console.log(\"Token:\", token);\n  // TODO: Add revocation check\n  try {\n    eval(token);\n  } catch(e) {}\n}",
+        "metrics": {
+          "totalLines": 7,
+          "codeLines": 6,
+          "commentLines": 1,
+          "blankLines": 0,
+          "cyclomaticComplexity": 2,
+          "maintainabilityIndex": 68
+        },
+        "complexity": {
+          "timeComplexity": "O(1)",
+          "spaceComplexity": "O(1)",
+          "score": 95,
+          "explanation": "Linear control flow executing in constant time.",
+          "loopDetails": []
+        },
+        "findings": [
+          {
+            "id": "d3ff48dc-b350-41cf-a6f2-9e73eaf0d7e7",
+            "ruleId": "RULE_SECURITY_UNSAFE",
+            "category": "security",
+            "severity": "critical",
+            "message": "Direct invocation of `eval()` is hazardous",
+            "explanation": "`eval()` executes untrusted strings as code in the application privilege context.",
+            "line": 5,
+            "snippet": "eval(token);",
+            "suggestion": "Use jsonwebtoken library to verify signature without eval."
+          },
+          {
+            "id": "696746ff-8a2f-406d-9c9c-a263e66ea11e",
+            "ruleId": "RULE_EMPTY_BLOCK",
+            "category": "bug-risk",
+            "severity": "warning",
+            "message": "Empty catch block silently swallowing exceptions",
+            "explanation": "Exceptions during token parsing are lost without trace.",
+            "line": 6,
+            "snippet": "} catch(e) {}",
+            "suggestion": "Log the error or reject the promise."
+          }
+        ],
+        "aiReview": {
+          "summary": "Critical security vulnerability: dangerous eval statement discovered in auth path.",
+          "overallRating": "Critical Issues",
+          "optimizations": [],
+          "securityRisks": [
+            {
+              "name": "Arbitrary Code Execution via eval()",
+              "severity": "critical",
+              "cwe": "CWE-94",
+              "description": "User-provided token parameter is evaluated directly.",
+              "mitigation": "Remove eval and use standard cryptographic verification."
+            }
+          ],
+          "explanation": "Code exposes extreme security liabilities while having minimal algorithmic complexity."
+        }
+      }
+    }
+  ]
+}
