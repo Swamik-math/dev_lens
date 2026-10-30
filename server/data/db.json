@@ -6,6 +6,13 @@
       "email": "supreet@test.com",
       "passwordHash": "$2b$10$ToGN6rrcGoCgkavGKUtpF.Pz4k8BMEK0r2z08AKzQD2Nd64fBZrWu",
       "createdAt": "2026-10-30T01:45:00.192Z"
+    },
+    {
+      "id": "1f420f2c-9c69-4bf5-9084-7b102fab8237",
+      "name": "demo1",
+      "email": "demo@gmail.com",
+      "passwordHash": "$2b$10$cKPuSzalPkbuiwCUI20OFeOXdA5Tg1.mSDmpqB0cOXC46gMVEVcdu",
+      "createdAt": "2026-10-30T01:48:10.019Z"
     }
   ],
   "analyses": [
