@@ -217,9 +217,20 @@ app.delete('/api/history/:id', (req, res) => {
 // ----------------------------------------------------
 // 7. GITHUB INTEGRATION ENDPOINTS
 // ----------------------------------------------------
+app.get('/api/github/user', async (req, res) => {
+    try {
+        const token = req.query.token;
+        const username = req.query.username;
+        const profile = await githubService_1.githubService.getUserProfile(token, username);
+        return res.json(profile);
+    }
+    catch (error) {
+        return res.status(500).json({ error: error.message || 'Failed to fetch GitHub profile' });
+    }
+});
 app.get('/api/github/repos', async (req, res) => {
     try {
-        const username = req.query.username || 'supre';
+        const username = req.query.username;
         const token = req.query.token;
         const repos = await githubService_1.githubService.getUserRepos(username, token);
         return res.json(repos);

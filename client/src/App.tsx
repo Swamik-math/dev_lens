@@ -45,6 +45,8 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
+  const [githubToken, setGithubToken] = useState<string>('');
+  const [githubUsername, setGithubUsername] = useState<string>('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Core Analysis State (shared across all pages)
@@ -53,14 +55,23 @@ export function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Restore user session and Gemini API Key from localStorage on mount
+  // Restore user session, Gemini API Key, and GitHub credentials from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('devlens_user');
     const savedToken = localStorage.getItem('devlens_token');
     const savedGeminiKey = localStorage.getItem('devlens_gemini_key');
+    const savedGitHubToken = localStorage.getItem('devlens_github_token');
+    const savedGitHubUsername = localStorage.getItem('devlens_github_username');
 
     if (savedGeminiKey) {
       setGeminiApiKey(savedGeminiKey);
+    }
+
+    if (savedGitHubToken) {
+      setGithubToken(savedGitHubToken);
+    }
+    if (savedGitHubUsername) {
+      setGithubUsername(savedGitHubUsername);
     }
 
     if (savedUser && savedToken) {
@@ -98,6 +109,28 @@ export function App() {
     } else {
       localStorage.removeItem('devlens_gemini_key');
     }
+  };
+
+  const handleSaveGitHub = (tokenVal: string, usernameVal: string) => {
+    setGithubToken(tokenVal);
+    setGithubUsername(usernameVal);
+    if (tokenVal) {
+      localStorage.setItem('devlens_github_token', tokenVal);
+    } else {
+      localStorage.removeItem('devlens_github_token');
+    }
+    if (usernameVal) {
+      localStorage.setItem('devlens_github_username', usernameVal);
+    } else {
+      localStorage.removeItem('devlens_github_username');
+    }
+  };
+
+  const handleDisconnectGitHub = () => {
+    setGithubToken('');
+    setGithubUsername('');
+    localStorage.removeItem('devlens_github_token');
+    localStorage.removeItem('devlens_github_username');
   };
 
   const runAnalysis = async (
@@ -224,7 +257,12 @@ export function App() {
 
           {activePage === 'github' && (
             <GitHubPage
+              githubToken={githubToken}
+              githubUsername={githubUsername}
+              onSaveGitHub={handleSaveGitHub}
+              onDisconnectGitHub={handleDisconnectGitHub}
               onLoadCodeToEditor={handleLoadGitHubCode}
+              onOpenSettings={() => setActivePage('settings')}
             />
           )}
 
@@ -234,6 +272,10 @@ export function App() {
               onOpenAuth={() => setAuthModalOpen(true)}
               geminiApiKey={geminiApiKey}
               onSaveGeminiKey={handleSaveGeminiKey}
+              githubToken={githubToken}
+              githubUsername={githubUsername}
+              onSaveGitHub={handleSaveGitHub}
+              onDisconnectGitHub={handleDisconnectGitHub}
             />
           )}
         </div>

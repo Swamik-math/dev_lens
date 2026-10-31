@@ -1,4 +1,4 @@
-import { GitHubRepo, GitHubFile } from '../shared/types';
+import { GitHubRepo, GitHubFile, GitHubUserProfile } from '../shared/types';
 
 export class GitHubService {
   private defaultHeaders(token?: string) {
@@ -12,8 +12,38 @@ export class GitHubService {
     return headers;
   }
 
-  public async getUserRepos(username: string, token?: string): Promise<GitHubRepo[]> {
-    const url = `https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=20`;
+  public async getUserProfile(token?: string, username?: string): Promise<GitHubUserProfile> {
+    const url = token 
+      ? 'https://api.github.com/user' 
+      : `https://api.github.com/users/${encodeURIComponent(username || 'supre')}`;
+
+    const response = await fetch(url, { headers: this.defaultHeaders(token) });
+    if (!response.ok) {
+      throw new Error(`GitHub Profile error: ${response.status} ${response.statusText}`);
+    }
+
+    const data: any = await response.json();
+    return {
+      login: data.login,
+      name: data.name || data.login,
+      avatar_url: data.avatar_url,
+      html_url: data.html_url,
+      bio: data.bio || undefined,
+      public_repos: data.public_repos || 0,
+      total_private_repos: data.total_private_repos || 0
+    };
+  }
+
+  public async getUserRepos(username?: string, token?: string): Promise<GitHubRepo[]> {
+    // If token is provided and no specific different username is queried, fetch all authenticated repos (including private)
+    let url: string;
+    if (token && (!username || username === 'me')) {
+      url = 'https://api.github.com/user/repos?sort=updated&per_page=40&affiliation=owner,collaborator';
+    } else {
+      const targetUser = username || 'supre';
+      url = `https://api.github.com/users/${encodeURIComponent(targetUser)}/repos?sort=updated&per_page=40`;
+    }
+
     const response = await fetch(url, { headers: this.defaultHeaders(token) });
     
     if (!response.ok) {
@@ -29,7 +59,8 @@ export class GitHubService {
       language: r.language,
       stars: r.stargazers_count,
       default_branch: r.default_branch,
-      html_url: r.html_url
+      html_url: r.html_url,
+      isPrivate: Boolean(r.private)
     }));
   }
 

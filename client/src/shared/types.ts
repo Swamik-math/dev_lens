@@ -173,6 +173,7 @@ export interface GitHubRepo {
   stars: number;
   default_branch: string;
   html_url: string;
+  isPrivate?: boolean;
 }
 
 export interface GitHubFile {
@@ -181,4 +182,14 @@ export interface GitHubFile {
   type: 'file' | 'dir';
   size?: number;
   download_url?: string;
+}
+
+export interface GitHubUserProfile {
+  login: string;
+  name?: string;
+  avatar_url: string;
+  html_url: string;
+  bio?: string;
+  public_repos: number;
+  total_private_repos?: number;
 }
