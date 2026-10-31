@@ -69,9 +69,9 @@ npm run dev
 - [x] **Phase 2: Backend & REST API** (Express, TypeScript, `/api/analyze`, CORS, input validation)
 - [x] **Phase 3: Deterministic Static Code Analysis** (Extensible Rule Engine, 6 production rules)
 - [x] **Phase 4: Time & Space Complexity Analyzer** (Big-O loop depth, recursion branching, step multiplier, auxiliary space)
-- [x] **Phase 5: AI Code Review Service** (Grounded cognitive synthesizer with before/after diffs)
-- [ ] **Phase 6: MongoDB Integration** (User, Analysis, Findings schemas)
-- [ ] **Phase 7: JWT Authentication & User Accounts**
-- [ ] **Phase 8: Analysis History & Regression Tracking**
-- [ ] **Phase 9: GitHub Repository Integration**
-- [ ] **Phase 10: Testing & Deployment**
+- [x] **Phase 5: Gemini AI Code Review & Mathematical Engine** (Big-O asymptotic reasoning and refactor diffs)
+- [x] **Phase 6: In-Editor Code Runner** (Subprocess execution with interactive terminal drawer)
+- [x] **Phase 7: JWT Authentication & User Accounts** (Bcrypt password hashing & session management)
+- [x] **Phase 8: Analysis History & Regression Tracking** (Persistent database and telemetry trends)
+- [x] **Phase 9: GitHub Repository Integration** (PAT/username sync, repo browser & 1-click import)
+- [x] **Phase 10: Modern SaaS Redesign** (Linear/Vercel dark graphite aesthetic with responsive layout)
