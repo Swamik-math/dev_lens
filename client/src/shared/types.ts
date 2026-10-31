@@ -45,7 +45,7 @@ export interface RecursionDetail {
 }
 
 export interface ComplexityResult {
-  timeComplexity: string; // e.g. "O(n^2)", "O(n log n)", "O(1)"
+  timeComplexity: string; // e.g. "O(n^2)", "O(n log n)", "O(1)", "O(N + Q log² N)"
   spaceComplexity: string; // e.g. "O(n)", "O(1)"
   explanation: string;
   score: number; // 0 to 100 performance score
@@ -96,12 +96,29 @@ export interface AnalysisResult {
   complexity: ComplexityResult;
   findings: Finding[];
   aiReview?: AiReviewResult;
+  analysisSource?: 'gemini' | 'static-engine';
 }
 
 export interface AnalysisRequest {
   code: string;
   language: SupportedLanguage;
   includeAi?: boolean;
+  geminiApiKey?: string;
+}
+
+// Code Execution Interfaces
+export interface ExecutionRequest {
+  code: string;
+  language: SupportedLanguage;
+  stdin?: string;
+}
+
+export interface ExecutionResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  executionTimeMs: number;
+  status: 'success' | 'error' | 'timeout';
 }
 
 // User & Auth

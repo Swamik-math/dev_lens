@@ -9,17 +9,32 @@ import { GitHubPage } from './pages/GitHubPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AnalysisResult, SupportedLanguage, User, SavedAnalysis } from './shared/types';
 
-const INITIAL_CODE = `// DevLens Sample: Nested loops in C++
+const INITIAL_CODE = `// DevLens Sample: Binary Search Algorithm
 #include <iostream>
-using namespace std;
+#include <vector>
+
+int binarySearch(const std::vector<int>& arr, int target) {
+    int left = 0;
+    int right = arr.size() - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
 
 int main() {
-    int n = 100;
-    // TODO: Optimize this quadratic bottleneck
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            cout << i + j;
-        }
+    std::vector<int> data = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+    int target = 23;
+    int result = binarySearch(data, target);
+
+    if (result != -1) {
+        std::cout << "Element found at index: " << result << std::endl;
+    } else {
+        std::cout << "Element not found in array." << std::endl;
     }
     return 0;
 }`;
@@ -29,6 +44,7 @@ export function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Core Analysis State (shared across all pages)
@@ -37,10 +53,16 @@ export function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Restore user session from localStorage on mount
+  // Restore user session and Gemini API Key from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('devlens_user');
     const savedToken = localStorage.getItem('devlens_token');
+    const savedGeminiKey = localStorage.getItem('devlens_gemini_key');
+
+    if (savedGeminiKey) {
+      setGeminiApiKey(savedGeminiKey);
+    }
+
     if (savedUser && savedToken) {
       try {
         setUser(JSON.parse(savedUser));
@@ -52,7 +74,7 @@ export function App() {
     }
 
     // Auto-run analysis on initial code so telemetry metrics are populated
-    runAnalysis(INITIAL_CODE, 'cpp');
+    runAnalysis(INITIAL_CODE, 'cpp', savedGeminiKey || '');
   }, []);
 
   const handleAuthSuccess = (authUser: User, authToken: string) => {
@@ -69,11 +91,25 @@ export function App() {
     localStorage.removeItem('devlens_token');
   };
 
-  const runAnalysis = async (codeToAnalyze = code, langToAnalyze = language) => {
+  const handleSaveGeminiKey = (newKey: string) => {
+    setGeminiApiKey(newKey);
+    if (newKey) {
+      localStorage.setItem('devlens_gemini_key', newKey);
+    } else {
+      localStorage.removeItem('devlens_gemini_key');
+    }
+  };
+
+  const runAnalysis = async (
+    codeToAnalyze = code, 
+    langToAnalyze = language, 
+    apiKeyToUse = geminiApiKey
+  ) => {
     setLoading(true);
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (apiKeyToUse) headers['x-gemini-key'] = apiKeyToUse;
 
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -81,7 +117,8 @@ export function App() {
         body: JSON.stringify({
           code: codeToAnalyze,
           language: langToAnalyze,
-          includeAi: true
+          includeAi: true,
+          geminiApiKey: apiKeyToUse
         })
       });
 
@@ -171,9 +208,11 @@ export function App() {
               language={language}
               setLanguage={setLanguage}
               result={result}
-              onRunAnalysis={() => runAnalysis(code, language)}
+              onRunAnalysis={() => runAnalysis(code, language, geminiApiKey)}
               loading={loading}
               onSaveToHistory={handleSaveToHistory}
+              geminiApiKey={geminiApiKey}
+              onOpenSettings={() => setActivePage('settings')}
             />
           )}
 
@@ -193,6 +232,8 @@ export function App() {
             <SettingsPage
               user={user}
               onOpenAuth={() => setAuthModalOpen(true)}
+              geminiApiKey={geminiApiKey}
+              onSaveGeminiKey={handleSaveGeminiKey}
             />
           )}
         </div>

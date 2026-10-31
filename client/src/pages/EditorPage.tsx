@@ -8,13 +8,17 @@ import {
   Bookmark, 
   Clock, 
   Layers, 
-  AlertTriangle, 
   CheckCircle2, 
   ShieldAlert,
-  Info,
-  Check
+  Terminal,
+  X,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  Cpu,
+  Key
 } from 'lucide-react';
-import { AnalysisResult, SupportedLanguage } from '../shared/types';
+import { AnalysisResult, SupportedLanguage, ExecutionResult } from '../shared/types';
 
 interface EditorPageProps {
   code: string;
@@ -25,9 +29,44 @@ interface EditorPageProps {
   onRunAnalysis: () => Promise<void>;
   loading: boolean;
   onSaveToHistory: (name: string) => Promise<void>;
+  geminiApiKey?: string;
+  onOpenSettings?: () => void;
 }
 
 const SAMPLE_CODES: Record<string, { language: SupportedLanguage; code: string; label: string }> = {
+  binarySearch: {
+    label: 'Binary Search (O(log n) C++)',
+    language: 'cpp',
+    code: `// DevLens Sample: Binary Search Algorithm
+#include <iostream>
+#include <vector>
+
+int binarySearch(const std::vector<int>& arr, int target) {
+    int left = 0;
+    int right = arr.size() - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+int main() {
+    std::vector<int> data = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+    int target = 23;
+    int result = binarySearch(data, target);
+
+    if (result != -1) {
+        std::cout << "Element found at index: " << result << std::endl;
+    } else {
+        std::cout << "Element not found in array." << std::endl;
+    }
+    return 0;
+}`
+  },
   nestedLoop: {
     label: 'Nested Loops (O(n²) C++)',
     language: 'cpp',
@@ -36,15 +75,38 @@ const SAMPLE_CODES: Record<string, { language: SupportedLanguage; code: string; 
 using namespace std;
 
 int main() {
-    int n = 100;
-    // TODO: Optimize this quadratic bottleneck
+    int n = 10;
+    // Quadratic computation loop
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            cout << i + j;
+            cout << i + j << " ";
         }
+        cout << "\\n";
     }
     return 0;
 }`
+  },
+  pythonAlgo: {
+    label: 'Two Sum Two-Pointer (Python)',
+    language: 'python',
+    code: `# DevLens Sample: Two Sum on Sorted Array
+def two_sum(numbers, target):
+    left, right = 0, len(numbers) - 1
+    while left < right:
+        curr_sum = numbers[left] + numbers[right]
+        if curr_sum == target:
+            return [left + 1, right + 1]
+        elif curr_sum < target:
+            left += 1
+        else:
+            right -= 1
+    return []
+
+# Driver code
+arr = [2, 7, 11, 15]
+target = 9
+print("Found indices:", two_sum(arr, target))
+`
   },
   insecureJs: {
     label: 'Insecure JavaScript (Eval & Debug Logs)',
@@ -61,7 +123,10 @@ function executeTask(userInput) {
   } catch (err) {}
 
   document.getElementById("output").innerHTML = userInput;
-}`
+}
+
+executeTask("2 + 2");
+`
   },
   hldPalindrome: {
     label: 'Heavy-Light Decomposition (O(N + Q log² N) C++)',
@@ -133,16 +198,6 @@ public:
         return ans;
     }
 };`
-  },
-  recursion: {
-    label: 'Recursive Fibonacci (O(2ⁿ) Exponential)',
-    language: 'javascript',
-    code: `// DevLens Sample: Exponential Branching Recursion
-function fibonacci(n) {
-  if (n <= 1) return n;
-  // Multiple recursive branch calls
-  return fibonacci(n - 1) + fibonacci(n - 2);
-}`
   }
 };
 
@@ -154,13 +209,22 @@ export const EditorPage: React.FC<EditorPageProps> = ({
   result,
   onRunAnalysis,
   loading,
-  onSaveToHistory
+  onSaveToHistory,
+  geminiApiKey,
+  onOpenSettings
 }) => {
   const [activeTab, setActiveTab] = useState<'findings' | 'complexity' | 'suggestions'>('findings');
   const [editorMode, setEditorMode] = useState<'standard' | 'diff'>('standard');
   const [saveName, setSaveName] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Execution & Terminal State
+  const [runningCode, setRunningCode] = useState(false);
+  const [execResult, setExecResult] = useState<ExecutionResult | null>(null);
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const [terminalTab, setTerminalTab] = useState<'output' | 'input'>('output');
+  const [stdinInput, setStdinInput] = useState('');
 
   const handleClearCode = () => {
     setCode('');
@@ -184,6 +248,38 @@ export const EditorPage: React.FC<EditorPageProps> = ({
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
+  // Run Code in Editor
+  const handleRunCode = async () => {
+    setRunningCode(true);
+    setTerminalOpen(true);
+    setTerminalTab('output');
+
+    try {
+      const res = await fetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          language,
+          stdin: stdinInput
+        })
+      });
+
+      const data: ExecutionResult = await res.json();
+      setExecResult(data);
+    } catch (err: any) {
+      setExecResult({
+        stdout: '',
+        stderr: `Execution request failed: ${err.message || 'Cannot reach API server'}`,
+        exitCode: 1,
+        executionTimeMs: 0,
+        status: 'error'
+      });
+    } finally {
+      setRunningCode(false);
+    }
+  };
+
   // Severity counts
   const criticalCount = result?.findings.filter(f => f.severity === 'critical').length || 0;
   const warningCount = result?.findings.filter(f => f.severity === 'warning').length || 0;
@@ -202,7 +298,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           <select 
             className="select-clean"
             onChange={(e) => handleSampleChange(e.target.value)}
-            defaultValue="nestedLoop"
+            defaultValue="binarySearch"
           >
             <option disabled>Load Example Code</option>
             {Object.entries(SAMPLE_CODES).map(([k, item]) => (
@@ -217,9 +313,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
           >
             <option value="cpp">C++</option>
+            <option value="python">Python</option>
             <option value="javascript">JavaScript</option>
             <option value="typescript">TypeScript</option>
-            <option value="python">Python</option>
             <option value="java">Java</option>
           </select>
 
@@ -231,6 +327,25 @@ export const EditorPage: React.FC<EditorPageProps> = ({
           >
             <Columns size={13} /> {editorMode === 'standard' ? 'Diff View' : 'Standard View'}
           </button>
+
+          {/* Gemini Engine Status Badge */}
+          {result?.analysisSource === 'gemini' ? (
+            <span className="badge-gemini" title="Analyzed with Google Gemini AI">
+              <Sparkles size={12} /> Gemini AI
+            </span>
+          ) : geminiApiKey ? (
+            <span className="badge-gemini" title="Gemini API Key configured and ready">
+              <Sparkles size={12} /> Gemini Ready
+            </span>
+          ) : (
+            <button 
+              className="gemini-hint-btn" 
+              onClick={onOpenSettings}
+              title="Add a Gemini API key in Settings for AI-powered complexity analysis"
+            >
+              <Key size={12} /> Connect Gemini API
+            </button>
+          )}
         </div>
 
         <div className="analyzer-toolbar-right">
@@ -266,55 +381,183 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             <Trash2 size={14} /> Clear
           </button>
 
-          {/* Analyze Code Button (Primary Emerald) */}
+          {/* Run Code Button */}
+          <button 
+            className="btn-run" 
+            onClick={handleRunCode}
+            disabled={runningCode}
+            title="Compile and run code in isolated sandbox"
+          >
+            <Play size={13} fill="currentColor" />
+            {runningCode ? 'Running...' : 'Run Code'}
+          </button>
+
+          {/* Analyze Code Button */}
           <button 
             className="btn-primary" 
             onClick={onRunAnalysis}
             disabled={loading}
           >
-            <Play size={13} fill="currentColor" />
-            {loading ? 'Analyzing AST...' : 'Analyze Code'}
+            <Cpu size={14} />
+            {loading ? 'Analyzing...' : 'Analyze Code'}
           </button>
         </div>
       </div>
 
       {/* Main Split: Monaco Editor on Left, Results Panel on Right */}
       <div className="workspace-split">
-        {/* Left: Code Editor */}
+        {/* Left: Code Editor & Terminal Drawer */}
         <div className="editor-canvas-container">
-          {editorMode === 'standard' ? (
-            <Editor
-              height="100%"
-              theme="vs-dark"
-              language={language === 'cpp' ? 'cpp' : language}
-              value={code}
-              onChange={(val) => setCode(val || '')}
-              options={{
-                fontFamily: "'Fira Code', monospace",
-                fontSize: 13.5,
-                lineHeight: 21,
-                minimap: { enabled: true },
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-                tabSize: 2,
-                cursorBlinking: 'smooth',
-                renderLineHighlight: 'all'
+          <div className="monaco-flex-wrapper">
+            {editorMode === 'standard' ? (
+              <Editor
+                height="100%"
+                theme="vs-dark"
+                language={language === 'cpp' ? 'cpp' : language}
+                value={code}
+                onChange={(val) => setCode(val || '')}
+                options={{
+                  fontFamily: "'Fira Code', monospace",
+                  fontSize: 13.5,
+                  lineHeight: 21,
+                  minimap: { enabled: true },
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  tabSize: 2,
+                  cursorBlinking: 'smooth',
+                  renderLineHighlight: 'all'
+                }}
+              />
+            ) : (
+              <DiffEditor
+                height="100%"
+                theme="vs-dark"
+                language={language === 'cpp' ? 'cpp' : language}
+                original={code}
+                modified={refactoredSnippet}
+                options={{
+                  fontFamily: "'Fira Code', monospace",
+                  fontSize: 13,
+                  readOnly: true,
+                  automaticLayout: true
+                }}
+              />
+            )}
+          </div>
+
+          {/* Collapsible Terminal / Output Drawer */}
+          {terminalOpen && (
+            <div className="terminal-drawer">
+              <div className="terminal-toolbar">
+                <div className="terminal-toolbar-left">
+                  <Terminal size={14} style={{ color: 'var(--text-muted)' }} />
+                  <button 
+                    className={`terminal-tab-pill ${terminalTab === 'output' ? 'active' : ''}`}
+                    onClick={() => setTerminalTab('output')}
+                  >
+                    Console Output
+                  </button>
+                  <button 
+                    className={`terminal-tab-pill ${terminalTab === 'input' ? 'active' : ''}`}
+                    onClick={() => setTerminalTab('input')}
+                  >
+                    Standard Input (stdin)
+                  </button>
+
+                  {/* Execution Status Badge */}
+                  {runningCode && (
+                    <span className="terminal-status-badge running">
+                      Compiling & Running...
+                    </span>
+                  )}
+                  {!runningCode && execResult && (
+                    <span className={`terminal-status-badge ${execResult.status === 'success' ? 'success' : 'error'}`}>
+                      {execResult.status === 'success' ? 'Exited (0)' : `Exited (${execResult.exitCode})`} • {execResult.executionTimeMs}ms
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <button 
+                    className="btn-icon-subtle" 
+                    onClick={() => setExecResult(null)}
+                    title="Clear console output"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                  <button 
+                    className="btn-icon-subtle" 
+                    onClick={() => setTerminalOpen(false)}
+                    title="Close terminal drawer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Terminal Body */}
+              <div className="terminal-body">
+                {terminalTab === 'output' ? (
+                  runningCode ? (
+                    <div style={{ color: 'var(--primary)', fontStyle: 'italic' }}>
+                      Executing program in secure execution environment...
+                    </div>
+                  ) : execResult ? (
+                    <>
+                      {execResult.stdout && (
+                        <div style={{ color: 'var(--text-main)' }}>{execResult.stdout}</div>
+                      )}
+                      {execResult.stderr && (
+                        <div style={{ color: 'var(--error)', marginTop: execResult.stdout ? '0.5rem' : 0 }}>
+                          {execResult.stderr}
+                        </div>
+                      )}
+                      {!execResult.stdout && !execResult.stderr && (
+                        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          (Program finished with exit code {execResult.exitCode} and no console output)
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ color: 'var(--text-muted)' }}>
+                      Press <strong>Run Code</strong> above to compile and run your program. Output will appear here.
+                    </div>
+                  )
+                ) : (
+                  <textarea
+                    className="terminal-stdin-input"
+                    placeholder="Type or paste input for standard input (cin / input() / scanf) before running..."
+                    value={stdinInput}
+                    onChange={(e) => setStdinInput(e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Quick toggle bar if terminal is closed */}
+          {!terminalOpen && (
+            <div 
+              style={{
+                height: '28px',
+                backgroundColor: '#101612',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 0.85rem',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
               }}
-            />
-          ) : (
-            <DiffEditor
-              height="100%"
-              theme="vs-dark"
-              language={language === 'cpp' ? 'cpp' : language}
-              original={code}
-              modified={refactoredSnippet}
-              options={{
-                fontFamily: "'Fira Code', monospace",
-                fontSize: 13,
-                readOnly: true,
-                automaticLayout: true
-              }}
-            />
+              onClick={() => setTerminalOpen(true)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Terminal size={12} />
+                <span>Terminal Output {execResult ? `(Last run: ${execResult.executionTimeMs}ms)` : ''}</span>
+              </div>
+              <ChevronUp size={14} />
+            </div>
           )}
         </div>
 
@@ -334,7 +577,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
               onClick={() => setActiveTab('complexity')}
             >
               <Clock size={14} />
-              <span>Complexity & Loops</span>
+              <span>Complexity</span>
             </button>
             <button 
               className={`results-tab-btn ${activeTab === 'suggestions' ? 'active' : ''}`}
@@ -352,7 +595,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                 <Layers size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
                 <h4 style={{ color: 'var(--text-main)', fontSize: '0.95rem', fontWeight: 600 }}>Ready for Inspection</h4>
                 <p style={{ fontSize: '0.78rem', marginTop: '0.35rem', lineHeight: 1.5 }}>
-                  Click <strong>Analyze Code</strong> above to inspect time/space complexity, loop nesting depth, security defects, and AI refactoring advice.
+                  Click <strong>Analyze Code</strong> to calculate asymptotic Big-O bounds, loop nesting depths, security defects, and AI refactoring diffs.
                 </p>
               </div>
             )}
@@ -360,7 +603,9 @@ export const EditorPage: React.FC<EditorPageProps> = ({
             {loading && (
               <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-muted)' }}>
                 <Clock size={32} style={{ margin: '0 auto 0.75rem', color: 'var(--primary)', animation: 'spin 1.5s linear infinite' }} />
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-main)' }}>Parsing AST and calculating Big-O bounds...</p>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-main)' }}>
+                  {geminiApiKey ? 'Consulting Gemini AI for mathematical complexity...' : 'Parsing AST and calculating Big-O bounds...'}
+                </p>
               </div>
             )}
 
@@ -500,7 +745,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                       <div className="panel-card" style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', marginBottom: '0.35rem' }}>
                           <Sparkles size={15} />
-                          <strong style={{ fontSize: '0.8rem' }}>AI Synthesis</strong>
+                          <strong style={{ fontSize: '0.8rem' }}>AI Synthesis ({result.analysisSource === 'gemini' ? 'Gemini 2.5/1.5' : 'Heuristic Engine'})</strong>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
                           {result.aiReview.summary}
@@ -519,6 +764,22 @@ export const EditorPage: React.FC<EditorPageProps> = ({
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                               {opt.description}
                             </p>
+                            {opt.beforeSnippet && opt.afterSnippet && (
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--error)', fontWeight: 600 }}>CURRENT</div>
+                                  <pre style={{ backgroundColor: 'var(--bg-input)', padding: '0.35rem', borderRadius: '4px', fontSize: '0.72rem', border: '1px solid var(--border)', overflowX: 'auto' }}>
+                                    <code>{opt.beforeSnippet}</code>
+                                  </pre>
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--primary)', fontWeight: 600 }}>REFACTORED</div>
+                                  <pre style={{ backgroundColor: 'var(--bg-input)', padding: '0.35rem', borderRadius: '4px', fontSize: '0.72rem', border: '1px solid var(--border)', overflowX: 'auto' }}>
+                                    <code>{opt.afterSnippet}</code>
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

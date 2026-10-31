@@ -11,6 +11,7 @@ const AnalyzerService_1 = require("./analyzer/AnalyzerService");
 const database_1 = require("./db/database");
 const auth_1 = require("./middleware/auth");
 const githubService_1 = require("./services/githubService");
+const runnerService_1 = require("./services/runnerService");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5001;
@@ -23,7 +24,8 @@ app.get('/api/health', (req, res) => {
         status: 'ok',
         service: 'DevLens Analysis API',
         uptime: process.uptime(),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        geminiConfigured: !!process.env.GEMINI_API_KEY
     });
 });
 // ----------------------------------------------------
@@ -102,7 +104,16 @@ app.post('/api/analyze', auth_1.optionalAuthMiddleware, async (req, res) => {
         if (!language) {
             return res.status(400).json({ error: 'Target "language" is required.' });
         }
-        const result = await analyzerService.analyze({ code, language, includeAi });
+        // Retrieve Gemini API Key from header, request body, or environment
+        const geminiApiKey = req.headers['x-gemini-key'] ||
+            req.body.geminiApiKey ||
+            process.env.GEMINI_API_KEY;
+        const result = await analyzerService.analyze({
+            code,
+            language,
+            includeAi,
+            geminiApiKey
+        });
         return res.json(result);
     }
     catch (error) {
@@ -133,7 +144,52 @@ app.post('/api/analyze/save', auth_1.optionalAuthMiddleware, (req, res) => {
     }
 });
 // ----------------------------------------------------
-// 4. ANALYSIS HISTORY ENDPOINTS
+// 4. CODE EXECUTION (RUN CODE IN EDITOR)
+// ----------------------------------------------------
+app.post('/api/execute', async (req, res) => {
+    try {
+        const { code, language, stdin } = req.body;
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ error: 'Valid "code" string is required to run.' });
+        }
+        if (!language) {
+            return res.status(400).json({ error: 'Target "language" is required.' });
+        }
+        const executionResult = await runnerService_1.runnerService.execute({ code, language, stdin });
+        return res.json(executionResult);
+    }
+    catch (error) {
+        console.error('Execution error:', error);
+        return res.status(500).json({
+            stdout: '',
+            stderr: `Server execution fault: ${error?.message || 'Unknown error'}`,
+            exitCode: 1,
+            executionTimeMs: 0,
+            status: 'error'
+        });
+    }
+});
+// ----------------------------------------------------
+// 5. GEMINI API SETTINGS ENDPOINT
+// ----------------------------------------------------
+app.post('/api/settings/gemini-key', (req, res) => {
+    try {
+        const { apiKey } = req.body;
+        if (!apiKey || typeof apiKey !== 'string') {
+            return res.status(400).json({ error: 'Valid apiKey string is required.' });
+        }
+        process.env.GEMINI_API_KEY = apiKey.trim();
+        return res.json({
+            success: true,
+            message: 'Gemini API key is now active on the DevLens server!'
+        });
+    }
+    catch (err) {
+        return res.status(500).json({ error: 'Failed to set Gemini API key' });
+    }
+});
+// ----------------------------------------------------
+// 6. ANALYSIS HISTORY ENDPOINTS
 // ----------------------------------------------------
 app.get('/api/history', auth_1.optionalAuthMiddleware, (req, res) => {
     try {
@@ -159,7 +215,7 @@ app.delete('/api/history/:id', (req, res) => {
     return res.json({ success: true, message: 'Analysis deleted successfully' });
 });
 // ----------------------------------------------------
-// 5. GITHUB INTEGRATION ENDPOINTS
+// 7. GITHUB INTEGRATION ENDPOINTS
 // ----------------------------------------------------
 app.get('/api/github/repos', async (req, res) => {
     try {
